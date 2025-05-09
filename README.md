@@ -15,4 +15,4 @@ After opening Jupyter Notebook:
 3)File-->Save Text As-->Filename.cpp  
 4)File-->New-->Terminal  
 5)g++ filename.cpp -o filename (paste the cmd)  
-6) .\filename  
+6) ./filename  
