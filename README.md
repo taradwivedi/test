@@ -1,5 +1,5 @@
 # test
-cat /etc/os-release (check fedora or ubuntu)
+cat /etc/os-release (check fedora or ubuntu)  
 step 1 on terminal : g++ --version
 step 2 : sudo apt update (ubuntu)
 sudo apt install g++  (ubuntu)
