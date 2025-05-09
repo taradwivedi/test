@@ -1,0 +1,163 @@
+#include <iostream>
+#include <omp.h>
+#include <vector>
+#include <sstream>
+#include <iomanip>
+
+using namespace std;
+
+// ----------------- Utility Functions ------------------
+void swap(int &a, int &b) {
+    int temp = a;
+    a = b;
+    b = temp;
+}
+
+void printVector(const vector<int>& arr) {
+    cout << "[";
+    for (size_t i = 0; i < arr.size(); ++i) {
+        cout << arr[i];
+        if (i != arr.size() - 1) cout << ", ";
+    }
+    cout << "]" << endl;
+}
+
+// ----------------- Bubble Sort ------------------
+void sequentialBubbleSort(vector<int>& arr) {
+    bool swapped;
+    for (size_t i = 0; i < arr.size(); ++i) {
+        swapped = false;
+        for (size_t j = 0; j < arr.size() - 1; ++j) {
+            if (arr[j] > arr[j + 1]) {
+                swap(arr[j], arr[j + 1]);
+                swapped = true;
+            }
+        }
+        if (!swapped) break;
+    }
+}
+
+void parallelBubbleSort(vector<int>& arr) {
+    int n = arr.size();
+    for (int i = 0; i < n; ++i) {
+        int first = i % 2;
+        #pragma omp parallel for shared(arr, n, first)
+        for (int j = first; j < n - 1; j += 2) {
+            if (arr[j] > arr[j + 1]) {
+                swap(arr[j], arr[j + 1]);
+            }
+        }
+    }
+}
+
+// ----------------- Merge Sort ------------------
+vector<int> merge(const vector<int>& left, const vector<int>& right) {
+    vector<int> result;
+    int i = 0, j = 0;
+    while (i < (int)left.size() && j < (int)right.size()) {
+        if (left[i] < right[j]) result.push_back(left[i++]);
+        else result.push_back(right[j++]);
+    }
+    while (i < (int)left.size()) result.push_back(left[i++]);
+    while (j < (int)right.size()) result.push_back(right[j++]);
+    return result;
+}
+
+vector<int> sequentialMergeSort(const vector<int>& arr) {
+    if (arr.size() <= 1) return arr;
+    int mid = arr.size() / 2;
+    vector<int> left(arr.begin(), arr.begin() + mid);
+    vector<int> right(arr.begin() + mid, arr.end());
+    return merge(sequentialMergeSort(left), sequentialMergeSort(right));
+}
+
+vector<int> parallelMergeSort(const vector<int>& arr) {
+    if (arr.size() <= 1000) return sequentialMergeSort(arr);  // Threshold
+
+    int mid = arr.size() / 2;
+    vector<int> left(arr.begin(), arr.begin() + mid);
+    vector<int> right(arr.begin() + mid, arr.end());
+
+    vector<int> sortedLeft, sortedRight;
+
+    #pragma omp parallel sections
+    {
+        #pragma omp section
+        {
+            sortedLeft = parallelMergeSort(left);
+        }
+        #pragma omp section
+        {
+            sortedRight = parallelMergeSort(right);
+        }
+    }
+
+    return merge(sortedLeft, sortedRight);
+}
+
+// ----------------- Main ------------------
+int main() {
+    string inputLine;
+    cout << "Enter integers separated by spaces: ";
+    getline(cin, inputLine);
+    stringstream ss(inputLine);
+    int num;
+    vector<int> arr;
+    while (ss >> num) arr.push_back(num);
+
+    cout << "\nOriginal Array: ";
+    printVector(arr);
+    cout << endl;
+
+    vector<int> arr1 = arr, arr2 = arr, arr3 = arr, arr4 = arr;
+
+    double start, end;
+
+    // Sequential Bubble Sort
+    start = omp_get_wtime();
+    sequentialBubbleSort(arr1);
+    end = omp_get_wtime();
+    cout << fixed << setprecision(6);
+    cout << "Sequential Bubble Sort Time: " << end - start << " seconds" << endl;
+    cout << "Sequential Bubble Sort Sorted Array: ";
+    printVector(arr1);
+    cout << endl;
+
+    // Parallel Bubble Sort
+    start = omp_get_wtime();
+    parallelBubbleSort(arr2);
+    end = omp_get_wtime();
+    cout << "Parallel Bubble Sort Time: " << end - start << " seconds" << endl;
+    cout << "Parallel Bubble Sort Sorted Array: ";
+    printVector(arr2);
+    cout << endl;
+
+    // Sequential Merge Sort
+    start = omp_get_wtime();
+    vector<int> result3 = sequentialMergeSort(arr3);
+    end = omp_get_wtime();
+    cout << "Sequential Merge Sort Time: " << end - start << " seconds" << endl;
+    cout << "Sequential Merge Sort Sorted Array: ";
+    printVector(result3);
+    cout << endl;
+
+    // Parallel Merge Sort
+    start = omp_get_wtime();
+    vector<int> result4 = parallelMergeSort(arr4);
+    end = omp_get_wtime();
+    cout << "Parallel Merge Sort Time: " << end - start << " seconds" << endl;
+    cout << "Parallel Merge Sort Sorted Array: ";
+    printVector(result4);
+    cout << endl;
+
+    return 0;
+}
+//cat /etc/os-release (check fedora or ubuntu)
+// step 1 on terminal : g++ --version
+// step 2 : sudo apt update (ubuntu)
+// sudo apt install g++  (ubuntu)
+// sudo dnf install gcc-c++ (fedora)
+
+// g++ -fopenmp filename.cpp -o filename
+// g++ filename.cpp -o filename
+//./filename
